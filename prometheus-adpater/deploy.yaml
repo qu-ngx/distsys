@@ -4,6 +4,7 @@ metadata:
   name: adapter-example
   namespace: default
 spec:
+
   containers:
   - image: redis
     name: redis
