@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-monitored
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      # --- CONTAINER 1: THE DATABASE ---
+      - name: mysql
+        image: mysql:8.0
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-creds
+              key: password
+        ports:
+        - containerPort: 3306
+
+      # --- CONTAINER 2: THE ADAPTER ---
+      - name: health-adapter
+        image: brendanburns/mysql-adapter # Or your custom Go image
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-creds
+              key: password
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-creds
+              key: user
+        # Kubernetes uses this to decide if the Pod is healthy
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
